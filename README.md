@@ -57,7 +57,7 @@ Explore the complete analysis through our Power BI dashboard:
 - EDA insights and feature importance
 - Actionable recommendations
 
-**[Download Dashboard (.pbix)](dashboard/OncoPredict_Dashboard.pbix)** | **[View PDF](dashboard/OncoPredict_Dashboard.pdf)** | **[More Screenshots](dashboard/screenshots/)**
+**[Download Dashboard (.pbix)](dashboard/Dashboard.pbix)** | **[View PDF](dashboard/Dashboard.pdf)** | **[More Screenshots](dashboard/screenshots/)**
 
 ## Quick Start
 
