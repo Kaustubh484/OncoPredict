@@ -29,7 +29,7 @@ Built an end-to-end ML pipeline analyzing **10,000 cancer trials** from Clinical
 
 ## End-to-End Pipeline
 
-**[View Interactive Flowchart](notebooks/OncoPredict_Flowchart_Interactive.html)**
+**[View Interactive Flowchart](https://kaustubh484.github.io/OncoPredict/notebooks/OncoPredict_Flowchart_Interactive.html)**
 
 ### Data Sources
 - **ClinicalTrials.gov API:** 10,000 cancer trials (2000-2025)
