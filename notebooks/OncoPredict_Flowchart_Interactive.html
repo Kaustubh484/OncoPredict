@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OncoPredict Data Pipeline Flowchart</title>
+    
+    <!-- React and Babel from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        #root {
+            width: 100%;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState } = React;
+
+        const phases = [
+          {
+            id: "collection",
+            title: "Data Collection",
+            items: [
+              { label: "ClinicalTrials.gov API", detail: "Cancer trials, 2000–2025" },
+            ],
+            output: "~10,000 trials retrieved in JSON format",
+          },
+          {
+            id: "quality",
+            title: "Data Quality Assessment",
+            items: [
+              { label: "Missing Values", detail: "phase_numeric 37.7%, enrollment 1.9%" },
+              { label: "Duplicates Check", detail: "None found" },
+              { label: "Outlier Detection", detail: "Enrollment, duration, interventions" },
+            ],
+            output: "Data quality report generated",
+          },
+          {
+            id: "cleaning",
+            title: "Data Cleaning",
+            branches: [
+              {
+                label: "Handle Missing Values",
+                items: ["phase_numeric : fill with −1", "enrollment : median imputation"],
+              },
+              {
+                label: "Outlier Treatment",
+                items: ["Cap enrollment at 99th percentile", "Cap duration at 99th percentile"],
+              },
+              {
+                label: "Standardize Formats",
+                items: ["Date normalization", "Text cleanup", "Categorical encoding"],
+              },
+            ],
+            output: "10,000 trials · 15 columns",
+          },
+          {
+            id: "features",
+            title: "Feature Engineering",
+            branches: [
+              {
+                label: "Enrollment Features",
+                items: ["enrollment_log", "enrollment_count_clean", "is_large_trial (≥ 500)"],
+              },
+              {
+                label: "Complexity Features",
+                items: ["trial_complexity", "intervention_count", "is_blinded", "is_randomized"],
+              },
+              {
+                label: "Phase Features",
+                items: ["phase_risk_score", "is_early_phase"],
+              },
+            ],
+            output: "11 engineered features",
+          },
+          {
+            id: "target",
+            title: "Target Variable Creation",
+            items: [
+              { label: "Completed assigned 1", detail: "79.1% of trials" },
+              { label: "Terminated / Withdrawn / Suspended assigned 0", detail: "20.9% of trials" },
+            ],
+            output: "Binary classification target",
+          },
+          {
+            id: "split",
+            title: "Train / Test Split",
+            split: {
+              left: { label: "Training Set", value: "80%", count: "8,000 trials", uses: ["Model training", "Cross-validation", "Feature selection"] },
+              right: { label: "Test Set", value: "20%", count: "2,000 trials", uses: ["Final evaluation", "Performance metrics"] },
+            },
+            output: "Stratified split · random_state = 42",
+          },
+        ];
+
+        const stats = [
+          { label: "Completeness", value: "98.1%" },
+          { label: "Validity", value: "100%" },
+          { label: "Consistency", value: "100%" },
+          { label: "Uniqueness", value: "100%" },
+        ];
+
+        function Connector() {
+          return (
+            <div style={{ display: "flex", justifyContent: "center", height: 40 }}>
+              <div style={{ width: 1.5, height: "100%", background: "#C4CDD5" }} />
+            </div>
+          );
+        }
+
+        function Arrow() {
+          return (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: -1 }}>
+              <svg width="10" height="7" viewBox="0 0 10 7">
+                <path d="M0 0L5 6L10 0" fill="#C4CDD5" />
+              </svg>
+            </div>
+          );
+        }
+
+        function PhaseHeader({ phase, index, isOpen, onClick }) {
+          return (
+            <button
+              onClick={onClick}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 16,
+                padding: "18px 24px",
+                background: isOpen ? "#FAFBFC" : "#FFFFFF",
+                border: isOpen ? "1.5px solid #D0D7DE" : "1.5px solid #E1E7EC",
+                borderBottom: isOpen ? "1px solid #E8ECF0" : "1.5px solid #E1E7EC",
+                borderRadius: isOpen ? "10px 10px 0 0" : 10,
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+            >
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  background: "#1B3A4B",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontFamily: "'Source Serif 4', Georgia, serif",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "#FFFFFF",
+                  flexShrink: 0,
+                }}
+              >
+                {index + 1}
+              </div>
+              <div style={{ flex: 1, textAlign: "left" }}>
+                <div
+                  style={{
+                    fontFamily: "'Source Serif 4', Georgia, serif",
+                    fontWeight: 600,
+                    fontSize: 17.5,
+                    color: "#1B3A4B",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  {phase.title}
+                </div>
+              </div>
+              <div
+                style={{
+                  width: 24,
+                  height: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "transform 0.2s ease",
+                  transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                  flexShrink: 0,
+                  opacity: 0.35,
+                }}
+              >
+                <svg width="12" height="7" viewBox="0 0 12 7">
+                  <path d="M1 1L6 6L11 1" stroke="#1B3A4B" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+            </button>
+          );
+        }
+
+        function BranchCards({ branches }) {
+          return (
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {branches.map((b, i) => (
+                <div
+                  key={i}
+                  style={{
+                    flex: "1 1 160px",
+                    background: "#FFFFFF",
+                    borderRadius: 8,
+                    padding: "14px 16px",
+                    border: "1px solid #E1E7EC",
+                    minWidth: 150,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontWeight: 700,
+                      fontSize: 12,
+                      color: "#1B3A4B",
+                      marginBottom: 10,
+                      paddingBottom: 8,
+                      borderBottom: "1px solid #F0F2F4",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    {b.label}
+                  </div>
+                  {b.items.map((item, j) => (
+                    <div
+                      key={j}
+                      style={{
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: 12.5,
+                        color: "#4A6274",
+                        padding: "3px 0",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 8,
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      <span style={{ color: "#B0BEC5", fontSize: 4, marginTop: 7, flexShrink: 0 }}>●</span>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          );
+        }
+
+        function SplitCards({ split }) {
+          return (
+            <div style={{ display: "flex", gap: 12 }}>
+              {[split.left, split.right].map((s, i) => (
+                <div
+                  key={i}
+                  style={{
+                    flex: 1,
+                    background: "#FFFFFF",
+                    borderRadius: 8,
+                    padding: "20px 18px 16px",
+                    border: "1px solid #E1E7EC",
+                    textAlign: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "'Source Serif 4', Georgia, serif",
+                      fontWeight: 700,
+                      fontSize: 30,
+                      color: "#1B3A4B",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {s.value}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontWeight: 700,
+                      fontSize: 12,
+                      color: "#1B3A4B",
+                      marginTop: 4,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    {s.label}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: 12.5,
+                      color: "#7A8D9C",
+                      marginTop: 2,
+                      marginBottom: 12,
+                    }}
+                  >
+                    {s.count}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+                    {s.uses.map((use, j) => (
+                      <div
+                        key={j}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          fontSize: 11.5,
+                          color: "#4A6274",
+                        }}
+                      >
+                        <span style={{ color: "#B0BEC5", fontSize: 4 }}>●</span>
+                        {use}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        }
+
+        function ItemList({ items }) {
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {items.map((item, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "10px 16px",
+                    background: "#FFFFFF",
+                    borderRadius: 8,
+                    border: "1px solid #E1E7EC",
+                  }}
+                >
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13.5, fontWeight: 600, color: "#1B3A4B" }}>
+                    {item.label}
+                  </span>
+                  {item.detail && (
+                    <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12.5, color: "#7A8D9C" }}>
+                      {item.detail}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        }
+
+        function PhaseContent({ phase }) {
+          return (
+            <div
+              style={{
+                background: "#FAFBFC",
+                borderLeft: "1.5px solid #D0D7DE",
+                borderRight: "1.5px solid #D0D7DE",
+                borderBottom: "1.5px solid #D0D7DE",
+                borderRadius: "0 0 10px 10px",
+                padding: "18px 24px 20px",
+              }}
+            >
+              {phase.items && <ItemList items={phase.items} />}
+              {phase.branches && <BranchCards branches={phase.branches} />}
+              {phase.split && <SplitCards split={phase.split} />}
+              {phase.output && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: "9px 16px",
+                    background: "#F4F7F9",
+                    borderRadius: 8,
+                    border: "1px dashed #D0D7DE",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#7A8D9C",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      flexShrink: 0,
+                    }}
+                  >
+                    Output
+                  </span>
+                  <span style={{ width: 1, height: 14, background: "#D0D7DE", flexShrink: 0 }} />
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#4A6274" }}>
+                    {phase.output}
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        function OncoFlowchart() {
+          const [openPhases, setOpenPhases] = useState({
+            collection: true, quality: true, cleaning: true,
+            features: true, target: true, split: true,
+          });
+
+          const toggle = (id) => setOpenPhases((prev) => ({ ...prev, [id]: !prev[id] }));
+          const allOpen = Object.values(openPhases).every(Boolean);
+
+          const toggleAll = () => {
+            const val = !allOpen;
+            const next = {};
+            phases.forEach((p) => (next[p.id] = val));
+            setOpenPhases(next);
+          };
+
+          return (
+            <div
+              style={{
+                minHeight: "100vh",
+                background: "#F0F3F5",
+                padding: "48px 20px 72px",
+                fontFamily: "'DM Sans', sans-serif",
+              }}
+            >
+              <link
+                href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@400;600;700&display=swap"
+                rel="stylesheet"
+              />
+
+              {/* Header */}
+              <div style={{ maxWidth: 620, margin: "0 auto 36px", textAlign: "center" }}>
+                <div
+                  style={{
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "#7A8D9C",
+                    marginBottom: 10,
+                  }}
+                >
+                  OncoPredict
+                </div>
+                <h1
+                  style={{
+                    fontFamily: "'Source Serif 4', Georgia, serif",
+                    fontSize: 34,
+                    fontWeight: 600,
+                    color: "#1B3A4B",
+                    margin: "0 0 8px",
+                    lineHeight: 1.2,
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Data Collection & Processing Pipeline
+                </h1>
+               
+
+                {/* Quality metrics */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    background: "#FFFFFF",
+                    borderRadius: 10,
+                    border: "1.5px solid #E1E7EC",
+                    overflow: "hidden",
+                    maxWidth: 480,
+                    margin: "0 auto 20px",
+                  }}
+                >
+                  
+    
+                     
+                </div>
+
+                <button
+                  onClick={toggleAll}
+                  style={{
+                    padding: "8px 20px",
+                    borderRadius: 8,
+                    border: "1.5px solid #D0D7DE",
+                    background: "#FFFFFF",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "#4A6274",
+                    cursor: "pointer",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  {allOpen ? "Collapse All" : "Expand All"}
+                </button>
+              </div>
+
+              {/* Flowchart */}
+              <div style={{ maxWidth: 600, margin: "0 auto" }}>
+                {phases.map((phase, index) => (
+                  <div key={phase.id}>
+                    <div>
+                      <PhaseHeader
+                        phase={phase}
+                        index={index}
+                        isOpen={openPhases[phase.id]}
+                        onClick={() => toggle(phase.id)}
+                      />
+                      {openPhases[phase.id] && <PhaseContent phase={phase} />}
+                    </div>
+                    {index < phases.length - 1 && (
+                      <>
+                        <Connector />
+                        <Arrow />
+                        <div style={{ height: 6 }} />
+                      </>
+                    )}
+                  </div>
+                ))}
+
+                {/* Final output */}
+                <Connector />
+                <Arrow />
+                <div style={{ height: 6 }} />
+                <div
+                  style={{
+                    background: "#1B3A4B",
+                    borderRadius: 10,
+                    padding: "28px 32px",
+                    textAlign: "center",
+                  }}
+                >
+                  
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      gap: 24,
+                      background: "rgba(255,255,255,0.08)",
+                      padding: "10px 28px",
+                      borderRadius: 8,
+                      border: "1px solid rgba(255,255,255,0.1)",
+                    }}
+                  >
+                    
+                    <div style={{ width: 1, background: "rgba(255,255,255,0.12)" }} />
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontFamily: "'Source Serif 4', Georgia, serif", fontSize: 20, fontWeight: 700, color: "#FFFFFF" }}>Dataset Ready</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div style={{ textAlign: "center", marginTop: 28 }}>
+                  <div style={{ fontSize: 11, color: "#94A3B8", letterSpacing: "0.02em" }}>
+                    trials_final_clean_20260131.csv
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // Render the component
+        ReactDOM.render(<OncoFlowchart />, document.getElementById('root'));
+    </script>
+</body>
+</html>

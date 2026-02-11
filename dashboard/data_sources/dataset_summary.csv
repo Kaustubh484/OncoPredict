@@ -1,0 +1,11 @@
+Metric,Value
+Total Trials (Full Dataset),"10,000"
+Test Set Trials,"2,000"
+Completed Trials,"7,911"
+Terminated Trials,"2,089"
+Completion Rate,79.1%
+Average Enrollment,228
+Median Enrollment,49
+Phase 1 Count,0
+Phase 2 Count,"2,318"
+Phase 3 Count,"2,706"
